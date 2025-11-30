@@ -2,6 +2,10 @@
 name = "payments-engine"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+authors = ["Swadhin Shahriar"]
+description = "A scalable payment processing engine with dispute resolution"
+repository = "https://github.com/yourusername/rust-payment-engine"
 
 [dependencies]
 # Async runtime
