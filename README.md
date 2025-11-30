@@ -7,6 +7,8 @@
 [![Rust](https://img.shields.io/badge/rust-1.91%2B-orange)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+> **AI Assistance Declaration**: This project was developed with AI assistance (Claude/Anthropic) for documentation, test generation, and code review. All core architecture, business logic, and implementation decisions were made by the human developer. See [AI Assistance Disclosure](#ai-assistance-disclosure) for full details.
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -19,7 +21,7 @@
 - [Performance](#performance)
 - [Design Decisions](#design-decisions)
 - [Development](#development)
-- [Troubleshooting](#troubleshooting)
+- [AI Assistance Disclosure](#ai-assistance-disclosure)
 - [License](#license)
 
 ## Overview
@@ -592,6 +594,80 @@ cargo fmt
 # Run with debug logging
 RUST_LOG=debug cargo run -- input.csv
 ```
+
+---
+
+## AI Assistance Disclosure
+
+This project was developed with assistance from AI tools. In compliance with submission requirements, I'm declaring all AI usage:
+
+### Tools Used
+
+Primary AI assistant used for:
+- Documentation structure and README.md content
+- Boilerplate generation,code review and optimization suggestions
+- Test fixture creation and validation
+- Architecture discussion and design feedback
+
+IDE-integrated AI used for:
+- Code completion and inline suggestions
+- Quick refactoring operations
+- Documentation comments
+
+### Areas of AI Assistance
+
+**Documentation (README.md)**:
+- Structure and organization of sections
+- Mermaid diagrams for architecture visualization
+- Performance metrics table formatting
+- Usage examples and command formatting
+
+**Testing**:
+- Test fixture CSV file creation (`tests/fixtures/basic.csv`, `edge_cases.csv`, `disputes.csv`)
+- Test data scenario suggestions
+- Test coverage documentation
+
+**Code Review & Suggestions**:
+- Architecture trade-offs discussion
+- Performance optimization ideas (not all implemented)
+- Error handling patterns review
+
+### Human Contributions (Core Work)
+
+All critical implementation was done by the human developer:
+
+✅ **Architecture Design**:
+- Actor model system design and implementation
+- Sharding strategy (16 shards for TX registry and accounts)
+- Event sourcing architecture
+- Tiered storage design (hot/cold separation)
+
+✅ **Core Implementation**:
+- All business logic for transaction processing
+- Dispute resolution algorithm and state machine
+- Account actor implementation
+- Transaction registry with uniqueness enforcement
+- Event store with crash recovery
+- CSV streaming with async I/O
+
+✅ **Critical Decisions**:
+- Negative balance support design
+- Client isolation and security measures
+- Transaction validation rules
+- Async vs sync architecture choice
+
+✅ **Testing**:
+- All 35 test implementations (architecture, core transactions, dispute resolution)
+- Test logic and assertions
+- Edge case identification
+
+✅ **Final Validation**:
+- All code review and acceptance
+- Bug fixes and debugging
+- Performance verification
+- Integration testing
+
+---
 
 ## License
 
