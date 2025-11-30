@@ -3,9 +3,9 @@
 > Rust payments engine with actor based concurrency, event sourcing, and dispute resolution
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-28%2F28-success)]()
+[![Tests](https://img.shields.io/badge/tests-35%2F35-success)]()
 [![Rust](https://img.shields.io/badge/rust-1.91%2B-orange)]()
-[![License](https://img.shields.io/badge/license-MIT-blue)]()
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 ## Table of Contents
 
@@ -375,7 +375,7 @@ client,available,held,total,locked
 - Ignores invalid transactions (continues processing)
 - Streams for constant memory usage
 
-### Server Mode (Bonus Feature)
+### Server Mode (Under Construction)
 
 Run as TCP server for concurrent connections:
 
@@ -402,17 +402,17 @@ deposit,1,1,100.0" | nc localhost 8080
 ### Running Tests
 
 ```bash
-# All tests (unit + integration)
+# All tests
 cargo test
 
-# Unit tests only
-cargo test --lib
+# Architecture tests (event store, actors, sharding)
+cargo test --test architecture
 
-# Integration tests
-cargo test --test integration_test
+# Core transaction tests (deposits, withdrawals, locks)
+cargo test --test core_transactions
 
-# Scalability tests
-cargo test --test scalability_test
+# Dispute resolution tests (disputes, resolves, chargebacks)
+cargo test --test dispute_resolution
 
 # Benchmarks
 cargo bench
@@ -420,11 +420,10 @@ cargo bench
 
 ### Test Coverage
 
-**28 tests, all passing**:
-- 15 unit tests (business logic)
-- 7 integration tests (end-to-end)
-- 5 scalability tests (actors, sharding)
-- 1 server test
+**35 tests, all passing**:
+- **5 architecture tests** (event sourcing, parallel processing, actor isolation)
+- **9 core transaction tests** (deposits, withdrawals, validation, locked accounts)
+- **21 dispute resolution tests** (disputes, resolves, chargebacks, edge cases)
 
 ### Key Test Scenarios
 
@@ -439,17 +438,17 @@ cargo bench
 | **Chargeback** | ...then chargeback | available=-$60, held=$0, locked=true | ✅ |
 | Locked account | locked=true, deposit $10 | Error: account locked | ✅ |
 
-### Running Specific Tests
+### Testing with Fixture Files
 
 ```bash
-# Test negative balance handling
-cargo run --release -- tests/fixtures/disputes.csv
-
-# Test basic operations
+# Test basic operations (deposits, withdrawals, multiple clients)
 cargo run --release -- tests/fixtures/basic.csv
 
-# Test edge cases (whitespace, precision)
+# Test edge cases (whitespace handling, decimal precision)
 cargo run --release -- tests/fixtures/edge_cases.csv
+
+# Test dispute resolution (disputes, resolves, chargebacks, locked accounts)
+cargo run --release -- tests/fixtures/disputes.csv
 ```
 
 ---
@@ -504,9 +503,8 @@ cargo run --release -- tests/fixtures/edge_cases.csv
 cargo bench
 
 # Benchmarks included:
-# - CLI processing speed
-# - Server load handling
-# - Scalability with increasing shards
+# - Parallel processing (10, 100, 1000 clients)
+# - Actor throughput (1000 transactions)
 ```
 
 ---
@@ -526,14 +524,6 @@ cargo bench
 | **Only Deposits Disputable** | Matches banking/crypto standards | Spec interpretation |
 | **Negative Balances Allowed** | Real-world scenario handling | Requires careful accounting |
 
-### Security Considerations
-
-#### Input Validation
-- All amounts validated (positive, non-zero)
-- Client IDs: `u16` (0-65,535)
-- Transaction IDs: `u32` (0-4,294,967,295)
-- CSV parsing errors handled gracefully
-
 #### Resource Limits
 - Bounded channels (10K capacity) prevent memory exhaustion
 - Semaphore limits concurrent connections (configurable)
@@ -548,39 +538,7 @@ cargo bench
 - All logs to stderr (stdout reserved for CSV output)
 - Structured logging with `tracing` crate
 - No sensitive data in logs
-
-### Why Negative Balances?
-
-**Requirement**: *"the clients available funds should decrease by the amount disputed"*
-
-**Scenario**: 
-1. User deposits $100
-2. User withdraws $60 (balance: $40)
-3. Bank disputes the $100 deposit (fraudulent)
-
-**Options**:
-- **Option A**: Only hold $40 (insufficient) → Bank loses $60
-- **Option B**: Hold full $100, available goes to -$60 → Correct accounting
-
-**Decision**: Option B matches real-world banking and the spec's literal interpretation.
-
-### Trade-offs Explained
-
-#### Async vs Sync
-**Chosen**: Async throughout
-
-**Pros**: Consistent API, better server scalability, non-blocking I/O
-**Cons**: Slightly more complex than sync
-
-**Rationale**: Spec asks "What if bundled in a server?" - async is correct for that use case.
-
-#### Shared State vs Isolated
-**Chosen**: Shared state in server mode
-
-**Pros**: Consistent global state, transactions interact correctly
-**Cons**: Requires synchronization (managed by actors)
-
-**Rationale**: Chronological ordering requirement implies shared state.
+- Naive approch, should be improved
 
 ---
 
@@ -604,15 +562,16 @@ payments-engine/
 │   ├── models.rs            # Data structures
 │   └── errors.rs            # Error types
 ├── tests/
-│   ├── integration_test.rs  # End-to-end tests
-│   ├── scalability_test.rs  # Actor/shard tests
-│   ├── server_test.rs       # TCP server tests
-│   └── fixtures/            # Test CSV files
+│   ├── architecture.rs         # Architecture tests (5 tests)
+│   ├── core_transactions.rs    # Core transaction tests (9 tests)
+│   ├── dispute_resolution.rs   # Dispute tests (21 tests)
+│   └── fixtures/               # Test CSV files
+│       ├── basic.csv           # Basic deposit/withdrawal scenarios
+│       ├── edge_cases.csv      # Whitespace & precision tests
+│       └── disputes.csv        # Dispute resolution flows
 ├── benches/
-│   ├── cli_performance.rs   # CLI benchmarks
-│   ├── server_load.rs       # Server benchmarks
-│   └── scalability_bench.rs # Scaling tests
-└── Cargo.toml               # Dependencies
+│   └── scalability_bench.rs    # Parallel processing benchmarks
+└── Cargo.toml                  # Dependencies
 ```
 
 ### Building from Source
@@ -634,117 +593,8 @@ cargo fmt
 RUST_LOG=debug cargo run -- input.csv
 ```
 
-### Dependencies
-
-```toml
-tokio = { version = "1.40", features = ["full"] }  # Async runtime
-csv-async = "1.3"                                  # Streaming CSV
-rust_decimal = "1.35"                              # Financial precision
-serde = { version = "1.0", features = ["derive"] } # Serialization
-thiserror = "1.0"                                  # Error handling
-async-trait = "0.1"                                # Async traits
-```
-
-### Code Quality
-
-**Type Safety**:
-- `u16` for client IDs
-- `u32` for transaction IDs
-- `Decimal` for amounts (no floating-point errors)
-- Enums for transaction types (exhaustive matching)
-
-**Error Handling**:
-- Custom error types with `thiserror`
-- No panics on malformed input
-- Graceful degradation
-
-**Testing**:
-- Unit tests for business logic
-- Integration tests for end-to-end flows
-- Property-based tests for invariants
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-#### "Insufficient funds" on withdrawal
-**Problem**: Trying to withdraw more than available balance.
-**Solution**: Check `available` field, not `total`. `held` funds cannot be withdrawn.
-
-#### Dispute rejected with "Not Found"
-**Possible Causes**:
-1. Transaction ID doesn't exist
-2. Transaction is a withdrawal (not disputable)
-3. Client mismatch (trying to dispute another client's transaction)
-
-**Solution**: Verify TX ID and client match the original deposit.
-
-#### Account locked
-**Problem**: Chargeback occurred, account is permanently locked.
-**Solution**: No solution - this is by design. Chargebacks are final.
-
-#### Negative available balance
-**This is correct!** See [Negative Balance Support](#negative-balance-support).
-
-### Performance Issues
-
-#### Slow processing
-- **Check**: Are you using `--release` flag?
-- **Solution**: Always use `cargo run --release` for production speed
-
-#### High memory usage
-- **Check**: Hot storage not migrating to cold
-- **Solution**: Ensure actor migration timers are running (server mode)
-
-#### Throughput lower than expected
-- **Check**: EventStore might be on slow disk
-- **Solution**: Use SSD or configure batched flushes
-
-### Testing Failures
-
-#### Integration tests failing
-```bash
-# Rebuild first
-cargo clean
-cargo build --release
-
-# Run with verbose output
-cargo test -- --nocapture
-```
-
-#### Benchmark failures
-```bash
-# Ensure system is idle
-cargo bench --quiet
-```
-
-### Getting Help
-
-1. Check test fixtures in `tests/fixtures/` for examples
-2. Review Mermaid diagrams in this README
-3. Enable debug logging: `RUST_LOG=debug cargo run -- input.csv 2> debug.log`
-
----
-
 ## License
 
 MIT License - Coding challenge submission, not for production use without further hardening.
 
 ---
-
-## Acknowledgments
-
-This implementation demonstrates:
-- ✅ Advanced Rust patterns (actors, async, type safety)
-- ✅ Financial systems knowledge (disputes, chargebacks, precision)
-- ✅ Security awareness (client isolation, validation)
-- ✅ Performance optimization (sharding, tiering, streaming)
-- ✅ Production-grade engineering (testing, documentation, error handling)
-
-Built for correctness, performance, and maintainability. Every design decision documented and justified.
-
----
-
-**Ready for review** | **100% spec compliant** | **Production patterns** | **Extensively tested**
